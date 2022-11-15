@@ -1,5 +1,7 @@
 Flask==2.2.2
 google_api_python_client==2.65.0
 google_auth_oauthlib==0.5.2
+httplib2==0.20.4
 protobuf==4.21.9
 requests==2.28.0
+streamlink==5.0.1

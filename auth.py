@@ -136,27 +136,6 @@ def clear_credentials():
   return ('Credentials have been cleared.<br><br>' +
           print_index_table())
 
-
-def save_json_to_file(filename, jsonData):
-  with open(filename, 'w') as f:
-    json.dump(jsonData, f)
-
-
-def read_json_from_file(filename):
-  with open(filename, 'r') as f:
-    return json.load(f)
-
-
-def credentials_to_dict(credentials):
-  return {
-    'token': credentials.token,
-    'refresh_token': credentials.refresh_token,
-    'token_uri': credentials.token_uri,
-    'client_id': credentials.client_id,
-    'client_secret': credentials.client_secret,
-    'scopes': credentials.scopes,
-  }
-
 def print_index_table():
   return ('<table>' +
           '<tr><td><a href="/info">See the OAuth token and channel info</a></td>' +
