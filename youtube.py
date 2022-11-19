@@ -86,9 +86,26 @@ class YoutubeService:
     
     return youtube
   
-  def start_live_broadcast(self, title=None, 
-                           privacyStatus=DEFAULT_PRIVACY_STATUS):
-    scheduled_start_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+  def list_live_broadcasts(self):
+    request = self.youtube.liveBroadcasts().list(
+      part='id,snippet,contentDetails,status',
+      mine=True,
+    )
+    broadcasts = request.execute()
+    print('Live Broadcasts:', broadcasts)
+    return broadcasts
+  
+  def list_live_streams(self):
+    request = self.youtube.liveStreams().list(
+      part='id,cdn,snippet,status',
+      mine=True,
+    )
+    livestreams = request.execute()
+    print('Live Streams:', livestreams)
+    return livestreams
+  
+  def start_live_broadcast(self, title, privacyStatus=DEFAULT_PRIVACY_STATUS):
+    scheduled_start_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
     body = {
       'snippet': {
         'title': title,
@@ -96,29 +113,24 @@ class YoutubeService:
       },
       'status': {
         'privacyStatus': privacyStatus,
-      }
+      },
+      'contentDetails': {
+        'enableAutoStart': True,
+        'enableAutoStop': True,
+      },
     }
     broadcast_request = self.youtube.liveBroadcasts().insert(
-        part=','.join(body.keys()),
+        part='id,snippet,contentDetails,status',
         body=body,
     )
+    
+    # Response type
+    # https://developers.google.com/youtube/v3/live/docs/liveBroadcasts#resource
     broadcast = broadcast_request.execute()
-    print(broadcast)
-    
-    livestream = self.start_livestream(title)
-    
-    # Bind the broadcast to the stream
-    bind_request = self.youtube.liveBroadcasts().bind(
-        id=broadcast.id,
-        part='id,snippet',
-        streamId=livestream.id
-    )
-    bind_response = bind_request.execute()
-    
-    print(bind_response)
+    return broadcast
     
   def start_livestream(self, title):
-    body={
+    body = {
       'snippet': {
         'title': title,
       },
@@ -130,26 +142,50 @@ class YoutubeService:
     }
     
     request = self.youtube.liveStreams().insert(
-        part='snippet,cdn',
+        part='id,snippet,cdn,contentDetails,status',
         body=body,
     )
-    # Response type:
+    
+    # Response type
     # https://developers.google.com/youtube/v3/live/docs/liveStreams#resource
     livestream = request.execute()
     return livestream
-    
-  def upload(self, filepath, title=None, description=None, 
-             privacyStatus=DEFAULT_PRIVACY_STATUS):
-
-    body=dict(
-      snippet=dict(
-        title=title,
-        #description=description,
-      ),
-      status=dict(
-        privacyStatus=privacyStatus
-      )
+  
+  def bind_broadcast_to_livestream(self, broadcast_id, livestream_id):
+    # Bind the broadcast to the stream
+    bind_request = self.youtube.liveBroadcasts().bind(
+        id=broadcast_id,
+        part='id,snippet',
+        streamId=livestream_id
     )
+    
+    # Response type
+    # https://developers.google.com/youtube/v3/live/docs/liveBroadcasts#resource
+    bind_response = bind_request.execute()
+    return bind_response
+  
+  def transition_to_live(self, broadcast_id):
+    request = self.youtube.liveBroadcasts().transition(
+      broadcastStatus='live',
+      id=broadcast_id,
+      part='id,snippet,contentDetails,status'
+    )
+    
+    # Response type
+    # https://developers.google.com/youtube/v3/live/docs/liveBroadcasts#resource
+    response = request.execute()
+    return response
+  
+    
+  def upload(self, filepath, title=None, privacyStatus=DEFAULT_PRIVACY_STATUS):
+    body = {
+      'snippet': {
+        'title': title,
+      },
+      'status': {
+        'privacyStatus': privacyStatus
+      },
+    }
 
     # Call the API's videos.insert method to create and upload the video.
     insert_request = self.youtube.videos().insert(
